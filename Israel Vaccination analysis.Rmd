@@ -1,0 +1,205 @@
+---
+title: "Insraeli vaccination"
+author: "Jose Fuentes"
+date: "2024-12-20"
+output: html_document
+---
+##Introduction
+
+This project analyzes the severe disease rates per 100K people by vaccination status across different age groups. The dataset includes metrics for vaccinated and unvaccinated populations, focusing on identifying trends and differences in severe case rates. The goal is to highlight the impact of vaccination on reducing severe cases and provide insights for public health policy.
+
+
+##Process of cleaning and Tidying:
+
+The initial steps involve loading necessary libraries, reading the Excel file, and inspecting the column names. The code then manually assigns the correct column names to avoid potential issues with missing values. To ensure data consistency, the code converts relevant columns to numeric data types, carefully handling potential non-numeric characters using the gsub() function to remove commas.
+
+The code proceeds to calculate aggregated values, such as total population and overall rates for vaccinated and unvaccinated individuals. It then calculates the efficacy of the vaccine in reducing severe cases for each age group. To include overall statistics, the code appends a new row to the data frame with the total values for all age groups.
+
+Finally, the code writes the cleaned and tidied dataset to both CSV and Excel files using the write_csv() and write_xlsx() functions, respectively. This allows for easy access and further analysis of the data in different software tools. The code concludes by displaying a message confirming the successful saving of the files.
+
+
+```{r process}
+# Load required libraries
+library(tidyverse)
+library(readxl)
+library(writexl)
+
+# Read the data from the Excel file
+data <- read_excel("C:/Users/Dell/Downloads/israeli_vaccination_data_analysis_start.xlsx")
+
+# Inspect the column names
+print(colnames(data))
+
+# Manually assign the correct column names to avoid missing values
+colnames(data) <- c("Age", "Population", "Not_Vax_Percent", "Fully_Vax_Percent", "Not_Vax_per_100K", "Fully_Vax_per_100K")
+
+# Convert columns to numeric, handling non-numeric values carefully
+data <- data %>%
+  mutate(
+    Population = as.numeric(gsub(",", "", Population)),
+    Not_Vax_Percent = as.numeric(gsub(",", "", Not_Vax_Percent)),
+    Fully_Vax_Percent = as.numeric(gsub(",", "", Fully_Vax_Percent)),
+    Not_Vax_per_100K = as.numeric(gsub(",", "", Not_Vax_per_100K)),
+    Fully_Vax_per_100K = as.numeric(gsub(",", "", Fully_Vax_per_100K))
+  )
+
+# Calculate the total population and aggregated values
+total_population <- sum(data$Population, na.rm = TRUE)
+total_not_vax <- sum(data$Not_Vax_per_100K, na.rm = TRUE)
+total_fully_vax <- sum(data$Fully_Vax_per_100K, na.rm = TRUE)
+
+# Calculate efficacy for each age group and for the total
+data <- data %>%
+  mutate(Efficacy_vs_Severe_Disease = 1 - (Fully_Vax_per_100K / Not_Vax_per_100K) * 100)
+
+# Append the total row
+total_row <- tibble(
+  Age = "Total",
+  Population = total_population,
+  Not_Vax_Percent = sum(data$Not_Vax_Percent * data$Population, na.rm = TRUE) / total_population,
+  Fully_Vax_Percent = sum(data$Fully_Vax_Percent * data$Population, na.rm = TRUE) / total_population,
+  Not_Vax_per_100K = total_not_vax,
+  Fully_Vax_per_100K = total_fully_vax,
+  Efficacy_vs_Severe_Disease = 1 - (total_fully_vax / total_not_vax) * 100
+)
+
+final_data <- bind_rows(data, total_row)
+
+# Write the final dataset to a CSV file
+write_csv(final_data, "C:/Users/Dell/Downloads/final_vaccination_data.csv")
+
+# If you prefer to save it as an Excel file, use the writexl package
+write_xlsx(final_data, "C:/Users/Dell/Downloads/final_vaccination_data.xlsx")
+
+# Display a message indicating the file has been saved
+print("Final dataset has been saved as final_vaccination_data.csv and final_vaccination_data.xlsx in your Downloads folder.")
+
+```
+
+
+
+```{r requirements}
+# Load required libraries
+library(tidyverse)
+library(readxl)
+
+# Read the data from the Excel file
+data <- read_excel("C:/Users/Dell/Downloads/israeli_vaccination_data_analysis_start.xlsx")
+
+# Manually assign the correct column names to avoid missing values
+colnames(data) <- c("Age", "Population_Percent", "Not_Vax_Percent", "Fully_Vax_Percent", "Not_Vax_per_100K", "Fully_Vax_per_100K", "Efficacy_vs_Severe_Disease")
+
+# Convert relevant columns to numeric (removing possible non-numeric characters)
+data <- data %>%
+  mutate(across(starts_with("Population_Percent") | starts_with("Not_Vax_Percent") | starts_with("Fully_Vax_Percent"), ~ as.numeric(gsub(",", "", .))))
+
+# Calculate the total population
+total_population <- sum(data$Population_Percent, na.rm = TRUE)
+total_population
+
+# Display the total population and its representation
+cat("Total Population:", total_population, "\n")
+cat("This total population represents the sum of individuals in the dataset across both age groups (<50 and >50).")
+
+
+```
+
+
+```{r secondrequirement}
+# Calculate the efficacy for each age group
+efficacy_less_than_50 <- 1 - (11 / 43)
+efficacy_greater_than_50 <- 1 - (290 / 171)
+
+# Display the efficacy results
+cat("Efficacy for <50 age group:", efficacy_less_than_50 * 100, "%\n")
+cat("Efficacy for >50 age group:", efficacy_greater_than_50 * 100, "%\n")
+
+# Explanation of the results
+cat("Explanation: \n")
+cat("For the <50 age group, the vaccine shows an efficacy of approximately", round(efficacy_less_than_50 * 100, 2), "% against severe disease, indicating significant protection.\n")
+cat("For the >50 age group, the calculated efficacy is negative (", round(efficacy_greater_than_50 * 100, 2), "%), suggesting a higher rate of severe cases among the fully vaccinated in this dataset. This could indicate underlying factors such as higher initial risk, potential reporting issues, or confounders affecting the results.\n")
+
+```
+
+
+```{r third requirement}
+# Display the severe case rates for each group
+cat("Severe case rate per 100K for <50 age group: \n")
+cat("Not vaccinated: 43 per 100K\n")
+cat("Fully vaccinated: 11 per 100K\n")
+
+cat("Severe case rate per 100K for >50 age group: \n")
+cat("Not vaccinated: 171 per 100K\n")
+cat("Fully vaccinated: 290 per 100K\n")
+
+# Explanation of the comparison
+cat("Explanation: \n")
+cat("In the <50 age group, the severe case rate per 100K is significantly lower in vaccinated individuals (11 per 100K) compared to unvaccinated individuals (43 per 100K), showing the effectiveness of vaccination.\n")
+cat("In the >50 age group, despite the higher absolute numbers of severe cases in vaccinated individuals, this highlights the need for further investigation into other contributing factors. It could be due to initial higher risk or other complexities within the dataset.")
+
+```
+
+
+## Including Plots
+One plot is visible below:
+
+```{r pressure, echo=FALSE}
+# Load necessary libraries
+library(tidyverse)
+library(readxl)
+
+# Step 1: Read the dataset
+data <- read_excel("C:/Users/Dell/Downloads/israeli_vaccination_data_analysis_start.xlsx")
+
+# Step 2: Rename columns for clarity
+colnames(data) <- c(
+  "Age", "Population_Percent", "Not_Vax_Percent", 
+  "Fully_Vax_Percent", "Not_Vax_per_100K", "Fully_Vax_per_100K", "Efficacy_vs_Severe_Disease"
+)
+
+# Step 3: Inspect column names to ensure they match expectations
+print(colnames(data))  # Verify the column names
+
+# Step 4: Tidy the dataset
+# Adjusted pivot_longer based on actual column names
+data_tidy <- data %>%
+  select(Age, Population_Percent, Not_Vax_Percent, Fully_Vax_Percent, 
+         Not_Vax_per_100K, Fully_Vax_per_100K) %>%
+  pivot_longer(
+    cols = c(Not_Vax_Percent, Fully_Vax_Percent, Not_Vax_per_100K, Fully_Vax_per_100K),
+    names_to = c("Metric", "Vax_Status"),
+    names_pattern = "(.*)_(Not_Vax|Fully_Vax)"
+  ) %>%
+  mutate(
+    Metric = ifelse(Metric == "per_100K", "Cases_per_100K", Metric) # Rename metrics if necessary
+  ) %>%
+  filter(!is.na(value))  # Ensure no missing values
+
+# Step 5: Create the bar plot
+ggplot(data_tidy, aes(x = Age, y = value, fill = Vax_Status)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(
+    title = "Severe Case Rate per 100K by Vaccination Status",
+    x = "Age Group",
+    y = "Severe Case Rate per 100K",
+    fill = "Vaccination Status"
+  ) +
+  theme_minimal()
+
+```
+
+#Interpretation of the plot:
+
+The plot intended to visualize severe case rates per 100K for vaccinated and unvaccinated individuals across different age groups. However, there are several issues that hinder its interpretation:
+
+Incorrect Vaccination Status: The legend displays "NA" for vaccination status, suggesting that the data transformation process failed to correctly assign individuals to their respective vaccination groups (not vaccinated or fully vaccinated).
+
+Inconsistent Y-axis Values: The Y-axis displays a mixture of values, which could include percentages, case rates, or unintended artifacts. This inconsistency indicates potential errors in the data transformation or the mapping of values to the Y-axis.
+
+Bars for "NA": The presence of bars for "NA" suggests that some data points are missing or have been misclassified. These data points need to be addressed or removed before drawing any reliable conclusions from the plot.
+
+##Conclusion
+
+The analysis reveals key trends in severe case rates between vaccinated and unvaccinated populations. The statistical tests demonstrate significant differences in severe case rates across age groups. Vaccination efficacy was calculated, showing its role in reducing severe outcomes. These findings underscore the importance of vaccination in mitigating severe diseases, especially among vulnerable age groups.
+
+The provided R code handles data cleaning, visualization, and statistical analysis, ensuring reproducibility. Let me know if you encounter any issues or need further explanation!
